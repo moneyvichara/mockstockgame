@@ -1,0 +1,1 @@
+Money Vichara - Mock Stock Game: Experience stock trading with a realistic simulation! Build a ₹10,00,000 portfolio, trade over 5 days with regular price updates, news impact, and strategy challenges. Learn risks, rewards, and market dynamics in a fun, fast-paced environment.
