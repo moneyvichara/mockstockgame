@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Vichara - Mock Stock Game</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom CSS for a vibrant and responsive layout -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-content {
+            flex: 1;
+        }
+        .container-main {
+            min-height: calc(100vh - 60px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        .vibrant-card {
+            background-color: #2d3748; /* Slightly lighter dark card */
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 1rem;
+            background-color: #4a5568;
+        }
+        .table-container table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .table-container th, .table-container td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #718096;
+            color: #e2e8f0;
+        }
+        /* Style for the game table to be more compact */
+        table#market-table th, table#market-table td {
+            padding: 0.5rem; /* Reduced padding for a more compact feel */
+        }
+        .table-container th {
+            background-color: #4a5568;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .editable-cell {
+            outline: none;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        .editable-cell:hover {
+            background-color: #64748b;
+        }
+        .editable-cell:focus {
+            background-color: #64748b;
+            box-shadow: 0 0 0 2px #4299e1;
+        }
+        .news-ticker {
+            background-color: #4a5568;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+        }
+        .news-header {
+            background-color: #2d3748;
+            color: #4299e1;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            text-align: center;
+            border: 2px solid #4299e1;
+        }
+        .news-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            position: relative;
+        }
+        .current-news {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            min-height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background-color: rgba(45, 55, 72, 0.5);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+        }
+        .scrolling-news {
+            height: 1.5rem;
+            overflow: hidden;
+            position: relative;
+            background-color: rgba(45, 55, 72, 0.3);
+            border-radius: 0.25rem;
+            border: 1px solid #4a5568;
+        }
+        .scrolling-text {
+            display: inline-block;
+            white-space: nowrap;
+            animation: scroll-left 30s linear infinite;
+            line-height: 1.5rem;
+            font-size: 0.9rem;
+            color: #cbd5e0;
+            padding: 0 1rem;
+        }
+        @keyframes scroll-left {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .buy-sell-button {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .buy-sell-button:hover {
+            transform: scale(1.05);
+        }
+        .buy-sell-button:active {
+            transform: scale(0.95);
+        }
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #2d3748;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            display: none;
+            text-align: center;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 99;
+            display: none;
+        }
+        /* Global classes for positive/negative change */
+        .positive { color: #48bb78 !important; }
+        .negative { color: #f56565 !important; }
+        .neutral { color: #e2e8f0 !important; }
+
+        /* Row background colors for price changes */
+        .positive-row {
+            background-color: rgba(72, 187, 120, 0.1) !important;
+        }
+        .positive-row td {
+            color: #48bb78 !important;
+        }
+        .negative-row {
+            background-color: rgba(245, 101, 101, 0.1) !important;
+        }
+        .negative-row td {
+            color: #f56565 !important;
+        }
+        .neutral-row td {
+            color: #e2e8f0 !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Footer styling */
+        .footer {
+            background-color: #2d3748;
+            color: #a0aec0;
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.875rem;
+            border-top: 1px solid #4a5568;
+            margin-top: auto;
+        }
+        .footer a {
+            color: #4299e1;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .footer a:hover {
+            color: #63b3ed;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+    <div class="main-content">
+        <div class="container-main p-4 md:p-8">
+
+            <!-- Message Box for alerts and confirmation -->
+            <div id="message-box" class="message-box p-6 w-96">
+                <p id="message-text" class="text-lg font-semibold mb-4"></p>
+                <div id="message-buttons" class="flex justify-center gap-4">
+                    <button id="confirm-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full transition-colors hidden">Confirm</button>
+                    <button id="cancel-button" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-full transition-colors hidden">Cancel</button>
+                    <button id="close-message" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-colors hidden">OK</button>
+                </div>
+            </div>
+            <div id="overlay" class="overlay"></div>
+
+            <!-- Pre-Game Setup Screen -->
+            <div id="setup-screen" class="vibrant-card fade-in">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-center text-blue-400 mb-6">Money Vichara - Mock Stock Game</h1>
+                <p class="text-center text-gray-400 mb-8">Learn stock trading with realistic market simulation. Customize companies and news or use defaults!</p>
+
+                <!-- Game Rules Section -->
+                <div class="bg-gray-700 p-6 rounded-lg mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-center text-blue-300">Game Rules & Structure</h2>
+                    <div class="prose prose-invert max-w-none text-gray-300">
+                        <p>Welcome to the Stock Market Game! Your goal is to grow your initial portfolio of ₹1,000,000 by trading stocks over 5 simulated trading days.</p>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li><strong>Portfolio Construction (7 mins):</strong> Build your initial portfolio. Prices remain stable during this phase.</li>
+                            <li><strong>Trading Session (5 mins per day):</strong> Active trading with live price movements and news updates every minute.</li>
+                            <li><strong>Break (2 mins):</strong> Review your performance between trading days. Prices remain stable.</li>
+                            <li><strong>Transaction Fee:</strong> 0.01% commission on all trades (buy and sell).</li>
+                            <li><strong>Price Updates:</strong> Stock prices update every 10 seconds based on volatility and news impact.</li>
+                        </ul>
+                        <p class="mt-4"><strong>Strategy Tips:</strong> Watch the news ticker closely - it significantly impacts stock prices! Higher volatility stocks offer more profit potential but with greater risk.</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-center items-center mt-8 mb-8 gap-4">
+                    <button id="start-game-button" class="buy-sell-button px-8 py-4 bg-green-500 hover:bg-green-600 text-white text-xl font-bold rounded-full shadow-lg">Start Game</button>
+                    <button id="customize-data-button" class="buy-sell-button px-8 py-4 bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold rounded-full shadow-lg">Customize Data</button>
+                    <button id="reset-button" class="buy-sell-button px-8 py-4 bg-red-500 hover:bg-red-600 text-white text-xl font-bold rounded-full shadow-lg">Reset Data</button>
+                </div>
+
+                <!-- Companies Table - Hidden by default -->
+                <div id="company-table-container" class="mb-8 hidden">
+                    <h2 class="text-2xl font-bold mb-4 text-center">Companies</h2>
+                    <div class="table-container">
+                        <table id="company-table" class="bg-gray-700 rounded-xl">
+                            <thead>
+                                <tr>
+                                    <th>Company Name</th>
+                                    <th>Industry</th>
+                                    <th>Initial Price (INR)</th>
+                                    <th>Volatility (1-10)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- News Table - Hidden by default -->
+                <div id="news-table-container" class="hidden">
+                    <h2 class="text-2xl font-bold mb-4 text-center">News</h2>
+                    <div class="table-container">
+                        <table id="news-table" class="bg-gray-700 rounded-xl">
+                            <thead>
+                                <tr>
+                                    <th>Day</th>
+                                    <th>Text</th>
+                                    <th>Impact Level</th>
+                                    <th>Scope</th>
+                                    <th>Target</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Game Screen -->
+            <div id="game-screen" class="vibrant-card hidden fade-in">
+                <!-- Game Title Header -->
+                <div class="text-center mb-6">
+                    <h1 class="text-3xl md:text-4xl font-extrabold text-blue-400">Money Vichara - Mock Stock Game</h1>
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                    <div class="text-center md:text-left mb-4 md:mb-0">
+                        <h2 class="text-3xl font-bold text-blue-400">Portfolio</h2>
+                        <p class="text-2xl font-bold mt-2">Value: <span id="portfolio-value" class="text-green-400">₹1,000,000</span></p>
+                        <p class="text-xl">Cash: <span id="cash-value" class="text-yellow-400">₹1,000,000</span></p>
+                    </div>
+                    <div class="text-center">
+                        <h2 id="session-display" class="text-4xl font-extrabold text-white"></h2>
+                        <p id="game-timer" class="text-5xl font-bold text-yellow-400 mt-2"></p>
+                    </div>
+                    <div class="text-center md:text-right mt-4 md:mt-0">
+                        <h2 class="text-3xl font-bold text-blue-400">Player</h2>
+                        <input type="text" id="player-name" placeholder="Enter your name" class="mt-2 text-black p-2 rounded-lg text-center" />
+                    </div>
+                </div>
+
+                <!-- Enhanced News Ticker -->
+                <div class="news-ticker mb-8">
+                    <div class="news-header">Market Updates</div>
+                    <div class="news-content">
+                        <div class="current-news" id="news-display">Welcome to the trading session! News will appear here during trading.</div>
+                        <div class="scrolling-news">
+                            <div class="scrolling-text" id="scrolling-news-text">Previous market news will scroll here...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unified Market and Trading Table -->
+                <div class="flex-1 flex flex-col">
+                    <h3 class="text-2xl font-bold mb-4">Market Overview</h3>
+                    <div class="table-container flex-1">
+                        <table id="market-table" class="bg-gray-700 rounded-xl">
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Previous Close</th>
+                                    <th>Current Price</th>
+                                    <th>Change</th>
+                                    <th>Change (%)</th>
+                                    <th>Shares Owned</th>
+                                    <th>Quantity</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="market-table-body">
+                                <!-- Market data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- New: Detailed Portfolio Section -->
+                <div class="flex-1 flex flex-col mt-8">
+                    <h3 class="text-2xl font-bold mb-4">Detailed Portfolio</h3>
+                    <div class="table-container flex-1">
+                        <table id="detailed-portfolio-table" class="bg-gray-700 rounded-xl">
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Shares Owned</th>
+                                    <th>Current Value (INR)</th>
+                                    <th>Average Cost (INR)</th>
+                                    <th>Profit/Loss (INR)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailed-portfolio-body">
+                                <!-- Detailed portfolio data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Final Results Screen -->
+            <div id="results-screen" class="vibrant-card hidden text-center p-8 fade-in">
+                <h1 class="text-4xl font-extrabold text-blue-400 mb-4">Money Vichara - Mock Stock Game</h1>
+                <h2 class="text-5xl font-extrabold text-purple-400 mb-6">Game Over!</h2>
+                <h3 class="text-3xl font-bold mb-4">Final Portfolio Value</h3>
+                <p id="final-value" class="text-6xl font-bold text-green-400 mb-6">₹1,000,000</p>
+                <p id="player-info" class="text-2xl font-semibold mb-2">Player: John Doe</p>
+                <p id="date-info" class="text-lg text-gray-400"></p>
+                <p class="text-xl font-bold mt-8">Thank you for playing Money Vichara Mock Stock Game!</p>
+
+                <!-- Transaction History Section -->
+                <div class="mt-12">
+                    <h3 class="text-3xl font-bold mb-4">Transaction History</h3>
+                    <div class="table-container">
+                        <table id="transaction-table" class="bg-gray-700 rounded-xl text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">Transaction Date</th>
+                                    <th class="text-center">Type</th>
+                                    <th class="text-center">Company</th>
+                                    <th class="text-center">Quantity</th>
+                                    <th class="text-center">Price (INR)</th>
+                                    <th class="text-center">Total (INR)</th>
+                                    <th class="text-center">Fee (INR)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transaction-history-body">
+                                <!-- Transaction data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Designed By - <strong>Vishweshwar Mensumane</strong> - <a href="https://moneyvichara.blogspot.com" target="_blank">moneyvichara.blogspot.com</a></p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const SEVEN_MINUTES = 7 * 60;
+            const FIVE_MINUTES = 5 * 60;
+            const TWO_MINUTES = 2 * 60;
+            const MAX_DAYS = 5;
+            const TRANSACTION_FEE_PERCENT = 0.0001; // 0.01%
+            const INITIAL_CASH = 1000000;
+            const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            const PRICE_UPDATE_INTERVAL = 10; // seconds
+            const NEWS_UPDATE_INTERVAL = 60; // seconds
+
+            // UI Elements
+            const setupScreen = document.getElementById('setup-screen');
+            const gameScreen = document.getElementById('game-screen');
+            const resultsScreen = document.getElementById('results-screen');
+            const companyTableBody = document.querySelector('#company-table tbody');
+            const newsTableBody = document.querySelector('#news-table tbody');
+            const gameTimerDisplay = document.getElementById('game-timer');
+            const sessionDisplay = document.getElementById('session-display');
+            const portfolioValueDisplay = document.getElementById('portfolio-value');
+            const cashValueDisplay = document.getElementById('cash-value');
+            const newsDisplay = document.getElementById('news-display');
+            const scrollingNewsText = document.getElementById('scrolling-news-text');
+            const playerInput = document.getElementById('player-name');
+            const marketTableBody = document.getElementById('market-table-body');
+            const detailedPortfolioBody = document.getElementById('detailed-portfolio-body');
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            const closeMessageButton = document.getElementById('close-message');
+            const confirmButton = document.getElementById('confirm-button');
+            const cancelButton = document.getElementById('cancel-button');
+            const overlay = document.getElementById('overlay');
+            const playerInfoDisplay = document.getElementById('player-info');
+            const dateInfoDisplay = document.getElementById('date-info');
+            const finalValueDisplay = document.getElementById('final-value');
+            const transactionHistoryBody = document.getElementById('transaction-history-body');
+
+            // New UI Elements for toggling tables
+            const customizeDataButton = document.getElementById('customize-data-button');
+            const companyTableContainer = document.getElementById('company-table-container');
+            const newsTableContainer = document.getElementById('news-table-container');
+
+            let timerInterval;
+            let gameData = {};
+            let currentDay = 0;
+            let tradingActive = false;
+            let gamePhase = 'setup'; // 'setup', 'trading', 'break'
+            let newsCounter = 0;
+            let elapsedTime = 0; // Track elapsed time for accurate news updates
+            let allDayNews = []; // Store all previous news for scrolling
+
+            // Sample data for initial population
+            const defaultCompanies = [
+                { name: 'Reliance Industries', industry: 'Energy', initialPrice: 2800, volatility: 7 },
+                { name: 'Tata Consultancy Services', industry: 'Technology', initialPrice: 3500, volatility: 6 },
+                { name: 'HDFC Bank', industry: 'Finance', initialPrice: 1700, volatility: 4 },
+                { name: 'Infosys', industry: 'Technology', initialPrice: 1500, volatility: 8 },
+                { name: 'Hindustan Unilever', industry: 'FMCG', initialPrice: 2500, volatility: 3 },
+                { name: 'ICICI Bank', industry: 'Finance', initialPrice: 950, volatility: 5 },
+                { name: 'Kotak Mahindra Bank', industry: 'Finance', initialPrice: 1800, volatility: 4 },
+                { name: 'State Bank of India', industry: 'Finance', initialPrice: 650, volatility: 6 },
+                { name: 'Bharti Airtel', industry: 'Telecom', initialPrice: 1000, volatility: 7 },
+                { name: 'Maruti Suzuki India', industry: 'Automobile', initialPrice: 10500, volatility: 9 },
+                { name: 'Larsen & Toubro', industry: 'Construction', initialPrice: 3800, volatility: 5 },
+                { name: 'Bajaj Finance', industry: 'Finance', initialPrice: 7000, volatility: 8 },
+                { name: 'Asian Paints', industry: 'Chemical', initialPrice: 3000, volatility: 4 },
+                { name: 'Titan Company', industry: 'Consumer Discretionary', initialPrice: 3300, volatility: 7 },
+                { name: 'Nestle India', industry: 'FMCG', initialPrice: 26000, volatility: 3 },
+                { name: 'JSW Steel', industry: 'Metal', initialPrice: 750, volatility: 9 },
+                { name: 'Wipro', industry: 'Technology', initialPrice: 450, volatility: 8 },
+                { name: 'Adani Ports', industry: 'Logistics', initialPrice: 1300, volatility: 10 },
+                { name: 'Mahindra & Mahindra', industry: 'Automobile', initialPrice: 1600, volatility: 8 },
+                { name: 'Tata Motors', industry: 'Automobile', initialPrice: 900, volatility: 9 }
+            ];
+
+            const defaultNews = [
+                // Day 1 News (Monday)
+                { day: 1, text: 'Government announces new tax incentives for the automobile sector.', impactLevel: 'major', scope: 'industry', target: 'Automobile' },
+                { day: 1, text: 'HDFC Bank posts record profits, beating analyst expectations.', impactLevel: 'major', scope: 'company', target: 'HDFC Bank' },
+                { day: 1, text: 'Global supply chain issues cause minor delays across all sectors.', impactLevel: 'low', scope: 'market', target: 'all' },
+                { day: 1, text: 'Technology stocks rally on strong global demand for software.', impactLevel: 'medium', scope: 'industry', target: 'Technology' },
+                { day: 1, text: 'Reliance Industries signs a major new energy deal.', impactLevel: 'major', scope: 'company', target: 'Reliance Industries' },
+                // Day 2 News (Tuesday)
+                { day: 2, text: 'Rising interest rates cause a slowdown in new home purchases.', impactLevel: 'medium', scope: 'industry', target: 'Finance' },
+                { day: 2, text: 'JSW Steel announces a breakthrough in low-carbon production.', impactLevel: 'major', scope: 'company', target: 'JSW Steel' },
+                { day: 2, text: 'Consumer spending remains strong, boosting FMCG stocks.', impactLevel: 'medium', scope: 'industry', target: 'FMCG' },
+                { day: 2, text: 'Political uncertainty leads to market-wide sell-off.', impactLevel: 'major', scope: 'market', target: 'all' },
+                { day: 2, text: 'Adani Ports faces a minor regulatory hurdle.', impactLevel: 'low', scope: 'company', target: 'Adani Ports' },
+                // Day 3 News (Wednesday)
+                { day: 3, text: 'Infosys wins a massive contract, outperforming competitors.', impactLevel: 'major', scope: 'company', target: 'Infosys' },
+                { day: 3, text: 'Larsen & Toubro stock plummets after project delays.', impactLevel: 'major', scope: 'company', target: 'Larsen & Toubro' },
+                { day: 3, text: 'Commodity prices fall, benefiting manufacturing industries.', impactLevel: 'medium', scope: 'industry', target: 'Automobile' },
+                { day: 3, text: 'A new startup threatens to disrupt the technology sector.', impactLevel: 'low', scope: 'industry', target: 'Technology' },
+                { day: 3, text: 'Indian stock market reaches new all-time high.', impactLevel: 'medium', scope: 'market', target: 'all' },
+                // Day 4 News (Thursday)
+                { day: 4, text: 'Tata Motors announces a new line of electric vehicles.', impactLevel: 'major', scope: 'company', target: 'Tata Motors' },
+                { day: 4, text: 'Bharti Airtel reports stronger-than-expected subscriber growth.', impactLevel: 'medium', scope: 'company', target: 'Bharti Airtel' },
+                { day: 4, text: 'Negative sentiment about the global economy spreads.', impactLevel: 'low', scope: 'market', target: 'all' },
+                { day: 4, text: 'Finance sector sees a brief but sharp decline.', impactLevel: 'medium', scope: 'industry', target: 'Finance' },
+                { day: 4, text: 'Nestle India stock soars on new product launch.', impactLevel: 'major', scope: 'company', target: 'Nestle India' },
+                // Day 5 News (Friday)
+                { day: 5, text: 'Political stability restores confidence in the market.', impactLevel: 'major', scope: 'market', target: 'all' },
+                { day: 5, text: 'Asian Paints reports weak sales for the quarter.', impactLevel: 'medium', scope: 'company', target: 'Asian Paints' },
+                { day: 5, text: 'Technology stocks end the week on a high note.', impactLevel: 'low', scope: 'industry', target: 'Technology' },
+                { day: 5, text: 'Indian economy shows signs of strong growth.', impactLevel: 'major', scope: 'market', target: 'all' },
+                { day: 5, text: 'Major bank mergers shake up the financial industry.', impactLevel: 'low', scope: 'industry', target: 'Finance' }
+            ];
+
+            // Helper function to show a modal message
+            function showMessage(text, isConfirmation = false, onConfirm = null) {
+                messageText.innerHTML = text;
+                messageBox.style.display = 'block';
+                overlay.style.display = 'block';
+
+                if (isConfirmation) {
+                    confirmButton.style.display = 'inline-block';
+                    cancelButton.style.display = 'inline-block';
+                    closeMessageButton.style.display = 'none';
+                    
+                    // Remove previous listeners to prevent multiple executions
+                    confirmButton.onclick = null;
+                    cancelButton.onclick = null;
+
+                    confirmButton.onclick = () => {
+                        onConfirm();
+                        messageBox.style.display = 'none';
+                        overlay.style.display = 'none';
+                    };
+
+                    cancelButton.onclick = () => {
+                        messageBox.style.display = 'none';
+                        overlay.style.display = 'none';
+                    };
+
+                } else {
+                    confirmButton.style.display = 'none';
+                    cancelButton.style.display = 'none';
+                    closeMessageButton.style.display = 'inline-block';
+                }
+            }
+
+            // Closes the message modal
+            closeMessageButton.addEventListener('click', () => {
+                messageBox.style.display = 'none';
+                overlay.style.display = 'none';
+            });
+
+            // Function to update scrolling news ticker - limited to last 4 news items
+            function updateScrollingNews() {
+                if (allDayNews.length > 0) {
+                    // Keep only the last 4 news items for scrolling
+                    const recentNews = allDayNews.slice(-4);
+                    const newsText = recentNews.join(' • ');
+                    scrollingNewsText.textContent = newsText;
+                } else {
+                    scrollingNewsText.textContent = 'Previous market news will scroll here...';
+                }
+            }
+
+            // Initializes the game with default data
+            function initializeGameData() {
+                gameData = {
+                    cash: INITIAL_CASH,
+                    ownedStocks: {},
+                    companies: [],
+                    news: [],
+                    player: { name: 'Player' },
+                    transactionHistory: [],
+                    stockCostBasis: {} // New: Tracks the average cost of each stock
+                };
+
+                // Reset news scrolling array
+                allDayNews = [];
+
+                // Populate with default data
+                defaultCompanies.forEach(c => gameData.companies.push({ ...c, currentPrice: c.initialPrice, previousClose: c.initialPrice, priceHistory: [c.initialPrice] }));
+                defaultNews.forEach(n => gameData.news.push(n));
+                gameData.companies.forEach(c => {
+                    gameData.ownedStocks[c.name] = 0;
+                    gameData.stockCostBasis[c.name] = 0;
+                });
+            }
+
+            // Renders editable tables for companies and news
+            function renderSetupTables() {
+                // Companies Table
+                companyTableBody.innerHTML = '';
+                gameData.companies.forEach(company => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td contenteditable="true" class="editable-cell text-center">${company.name}</td>
+                        <td contenteditable="true" class="editable-cell text-center">${company.industry}</td>
+                        <td contenteditable="true" class="editable-cell text-center">${company.initialPrice}</td>
+                        <td contenteditable="true" class="editable-cell text-center">${company.volatility}</td>
+                    `;
+                    companyTableBody.appendChild(row);
+                });
+
+                // News Table
+                newsTableBody.innerHTML = '';
+                gameData.news.forEach(newsItem => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td contenteditable="true" class="editable-cell text-center">${newsItem.day}</td>
+                        <td contenteditable="true" class="editable-cell text-center">${newsItem.text}</td>
+                        <td contenteditable="true" class="editable-cell text-center">${newsItem.impactLevel}</td>
+                        <td contenteditable="true" class="editable-cell text-center">${newsItem.scope}</td>
+                        <td contenteditable="true" class="editable-cell text-center">${newsItem.target}</td>
+                    `;
+                    newsTableBody.appendChild(row);
+                });
+
+                // Event listener for pasting from Excel/CSV
+                [companyTableBody, newsTableBody].forEach(table => {
+                    table.addEventListener('paste', (e) => {
+                        e.preventDefault();
+                        const pastedData = e.clipboardData.getData('text');
+                        const rows = pastedData.split('\n');
+                        const firstRow = table.rows[0];
+                        
+                        rows.forEach((rowData, i) => {
+                            const cells = rowData.split('\t');
+                            if (i >= table.rows.length) {
+                                const newRow = table.insertRow(-1);
+                                for (let j = 0; j < cells.length && j < firstRow.cells.length; j++) {
+                                    const newCell = newRow.insertCell(j);
+                                    newCell.contentEditable = true;
+                                    newCell.classList.add('editable-cell', 'text-center');
+                                    newCell.textContent = cells[j].trim();
+                                }
+                            } else {
+                                const currentRow = table.rows[i];
+                                for (let j = 0; j < cells.length && j < currentRow.cells.length; j++) {
+                                    currentRow.cells[j].textContent = cells[j].trim();
+                                }
+                            }
+                        });
+                    });
+                });
+            }
+
+            // Parses data from the editable tables
+            function parseTableData() {
+                const newCompanies = [];
+                const newNews = [];
+
+                // Parse Company Table
+                const companyRows = companyTableBody.querySelectorAll('tr');
+                companyRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length === 4) {
+                        const name = cells[0].textContent.trim();
+                        const industry = cells[1].textContent.trim();
+                        const initialPrice = parseFloat(cells[2].textContent.trim());
+                        const volatility = parseInt(cells[3].textContent.trim());
+                        
+                        // Validate company data
+                        if (name && industry && 
+                            !isNaN(initialPrice) && initialPrice > 0 && initialPrice < 1000000 &&
+                            !isNaN(volatility) && volatility >= 1 && volatility <= 10) {
+                            newCompanies.push({
+                                name: name,
+                                industry: industry,
+                                initialPrice: initialPrice,
+                                volatility: volatility
+                            });
+                        }
+                    }
+                });
+
+                // Parse News Table
+                const newsRows = newsTableBody.querySelectorAll('tr');
+                newsRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length === 5) {
+                        const day = parseInt(cells[0].textContent.trim());
+                        const text = cells[1].textContent.trim();
+                        const impactLevel = cells[2].textContent.trim().toLowerCase();
+                        const scope = cells[3].textContent.trim().toLowerCase();
+                        const target = cells[4].textContent.trim();
+                        
+                        // Validate news data
+                        if (!isNaN(day) && day >= 1 && day <= 5 &&
+                            text.length > 0 &&
+                            ['low', 'medium', 'major'].includes(impactLevel) &&
+                            ['market', 'industry', 'company'].includes(scope) &&
+                            target.length > 0) {
+                            newNews.push({
+                                day: day,
+                                text: text,
+                                impactLevel: impactLevel,
+                                scope: scope,
+                                target: target
+                            });
+                        }
+                    }
+                });
+
+                if (newCompanies.length === 0) {
+                    showMessage("Error: No valid company data found. Please ensure all fields are filled correctly:<br>• Company name and industry must not be empty<br>• Initial price must be between 0.01 and 999,999<br>• Volatility must be between 1 and 10");
+                    return false;
+                }
+                
+                if (newNews.length === 0) {
+                    showMessage("Error: No valid news data found. Please ensure all fields are filled correctly:<br>• Day must be between 1 and 5<br>• Text must not be empty<br>• Impact level must be 'low', 'medium', or 'major'<br>• Scope must be 'market', 'industry', or 'company'<br>• Target must not be empty");
+                    return false;
+                }
+
+                // Update gameData with parsed values
+                gameData.companies = newCompanies.map(c => ({
+                    ...c,
+                    currentPrice: c.initialPrice,
+                    previousClose: c.initialPrice,
+                    priceHistory: [c.initialPrice]
+                }));
+                gameData.news = newNews;
+                gameData.ownedStocks = {};
+                gameData.stockCostBasis = {};
+                gameData.companies.forEach(c => {
+                    gameData.ownedStocks[c.name] = 0;
+                    gameData.stockCostBasis[c.name] = 0;
+                });
+
+                return true;
+            }
+            
+            // Handles the main game timer and logic
+            function startGameTimer() {
+                let timeLeft;
+
+                const updateGameLogic = () => {
+                    // Update timer and display
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    gameTimerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                    // Handle phase end
+                    if (timeLeft <= 0) {
+                        handlePhaseEnd();
+                        return;
+                    }
+
+                    // Only update stock prices and news during the trading phase
+                    if (gamePhase === 'trading') {
+                        // Update news every minute (every 60 seconds)
+                        if (elapsedTime % NEWS_UPDATE_INTERVAL === 0 && elapsedTime > 0) {
+                            const dailyNews = gameData.news.filter(n => n.day === currentDay);
+                            if (newsCounter < dailyNews.length) {
+                                const currentNewsItem = dailyNews[newsCounter];
+                                newsDisplay.textContent = currentNewsItem.text;
+                                allDayNews.push(currentNewsItem.text);
+                                updateScrollingNews(); // Update the scrolling ticker
+                                applyNewsImpact(currentNewsItem);
+                                newsCounter++;
+                            }
+                        }
+                        
+                        // Update stock prices every 10 seconds
+                        if (elapsedTime % PRICE_UPDATE_INTERVAL === 0) {
+                            applyRandomPriceFluctuation();
+                            updateMarketTable();
+                            updatePortfolio();
+                            updateDetailedPortfolio();
+                        }
+                        
+                        elapsedTime++;
+                    }
+                    
+                    timeLeft--;
+                };
+
+                const applyNewsImpact = (news) => {
+                    gameData.companies.forEach(company => {
+                        let newsImpact = 0;
+                        // Determine impact magnitude based on news level
+                        switch (news.impactLevel) {
+                            case 'major': newsImpact = (Math.random() - 0.5) * 0.1; break; // ±5%
+                            case 'medium': newsImpact = (Math.random() - 0.5) * 0.06; break; // ±3%
+                            case 'low': newsImpact = (Math.random() - 0.5) * 0.04; break; // ±2%
+                            default: newsImpact = (Math.random() - 0.5) * 0.02; break; // ±1% for unknown
+                        }
+                        
+                        // Apply impact based on scope and target
+                        if (news.scope === 'market' && news.target === 'all') {
+                            company.currentPrice *= (1 + newsImpact);
+                        } else if (news.scope === 'industry' && company.industry === news.target) {
+                            company.currentPrice *= (1 + newsImpact);
+                        } else if (news.scope === 'company' && company.name === news.target) {
+                            company.currentPrice *= (1 + newsImpact);
+                        }
+                        
+                        // Ensure prices stay within reasonable bounds
+                        if (company.currentPrice < 0.01) {
+                            company.currentPrice = 0.01; // Minimum price to prevent zero/negative
+                        }
+                        
+                        if (company.currentPrice > Number.MAX_SAFE_INTEGER) {
+                            company.currentPrice = company.initialPrice * 100; // Cap at 100x initial price
+                        }
+                        
+                        // Add to history for charts (future functionality)
+                        company.priceHistory.push(company.currentPrice);
+                    });
+                };
+                
+                const applyRandomPriceFluctuation = () => {
+                    gameData.companies.forEach(company => {
+                        const randomFluctuation = (Math.random() - 0.5) * 0.02 * (company.volatility / 10);
+                        company.currentPrice *= (1 + randomFluctuation);
+                        
+                        // Ensure prices stay within reasonable bounds
+                        if (company.currentPrice < 0.01) {
+                            company.currentPrice = 0.01; // Minimum price
+                        }
+                        
+                        if (company.currentPrice > Number.MAX_SAFE_INTEGER) {
+                            company.currentPrice = company.initialPrice * 100; // Cap price
+                        }
+                        
+                        // Validate price is a valid number
+                        if (!isFinite(company.currentPrice) || isNaN(company.currentPrice)) {
+                            company.currentPrice = company.initialPrice;
+                        }
+                        
+                        company.priceHistory.push(company.currentPrice);
+                    });
+                };
+
+                const handlePhaseEnd = () => {
+                    clearInterval(timerInterval);
+
+                    if (gamePhase === 'setup') {
+                        currentDay = 1;
+                        startTradingSession();
+                    } else if (gamePhase === 'trading') {
+                        startBreakSession();
+                    } else if (gamePhase === 'break') {
+                        if (currentDay < MAX_DAYS) {
+                            currentDay++;
+                            // Update previous close for all companies
+                            gameData.companies.forEach(c => c.previousClose = c.currentPrice);
+                            startTradingSession();
+                        } else {
+                            endGame();
+                        }
+                    }
+                };
+
+                const startSetupSession = () => {
+                    gamePhase = 'setup';
+                    tradingActive = false;
+                    sessionDisplay.textContent = "Portfolio Construction";
+                    timeLeft = SEVEN_MINUTES;
+                    elapsedTime = 0;
+                    newsDisplay.textContent = "Welcome to the trading session! Build your initial portfolio.";
+                    timerInterval = setInterval(updateGameLogic, 1000);
+                };
+
+                const startTradingSession = () => {
+                    gamePhase = 'trading';
+                    tradingActive = true;
+                    newsCounter = 0;
+                    elapsedTime = 0;
+                    sessionDisplay.textContent = `${DAY_NAMES[currentDay-1]} Trading`;
+                    timeLeft = FIVE_MINUTES;
+                    timerInterval = setInterval(updateGameLogic, 1000);
+                    
+                    // Show initial news for the day immediately
+                    const dailyNews = gameData.news.filter(n => n.day === currentDay);
+                    if (dailyNews.length > 0) {
+                        newsDisplay.textContent = dailyNews[0].text;
+                        allDayNews.push(dailyNews[0].text);
+                        updateScrollingNews(); // Update the scrolling ticker
+                        applyNewsImpact(dailyNews[0]);
+                        newsCounter = 1; // Start from the second news item for the next update
+                    } else {
+                        newsDisplay.textContent = 'No news today.';
+                    }
+                };
+
+                const startBreakSession = () => {
+                    gamePhase = 'break';
+                    tradingActive = false;
+                    sessionDisplay.textContent = `End of ${DAY_NAMES[currentDay-1]} - Break`;
+                    timeLeft = TWO_MINUTES;
+                    elapsedTime = 0;
+                    timerInterval = setInterval(updateGameLogic, 1000);
+                    newsDisplay.textContent = 'Break Time. Get ready for the next trading session!';
+                    
+                    // Update market table to reflect break status
+                    updateMarketTable();
+                };
+
+                // The first session is always setup
+                startSetupSession();
+            }
+
+            // Updates the combined market table with proper row coloring
+            function updateMarketTable() {
+                marketTableBody.innerHTML = '';
+                gameData.companies.forEach(company => {
+                    const priceChange = company.currentPrice - company.previousClose;
+                    const changePercentage = (priceChange / company.previousClose) * 100;
+                    
+                    // Determine row class based on price change
+                    let rowClass = 'neutral-row';
+                    if (priceChange > 0) {
+                        rowClass = 'positive-row';
+                    } else if (priceChange < 0) {
+                        rowClass = 'negative-row';
+                    }
+                    
+                    const sign = priceChange >= 0 ? '+' : '';
+
+                    // Determine if trading is allowed based on game phase
+                    const tradingAllowed = (gamePhase === 'setup' || gamePhase === 'trading');
+                    const disabledAttribute = tradingAllowed ? '' : 'disabled';
+                    const disabledClass = tradingAllowed ? '' : 'opacity-50 cursor-not-allowed';
+
+                    const row = document.createElement('tr');
+                    row.classList.add(rowClass);
+                    row.innerHTML = `
+                        <td class="company-name-cell">${company.name}</td>
+                        <td>₹${company.previousClose.toFixed(2)}</td>
+                        <td>₹${company.currentPrice.toFixed(2)}</td>
+                        <td>${sign}₹${priceChange.toFixed(2)}</td>
+                        <td>${sign}${changePercentage.toFixed(2)}%</td>
+                        <td>${gameData.ownedStocks[company.name] || 0}</td>
+                        <td>
+                            <input type="number" data-company="${company.name}" class="trade-quantity-input p-2 rounded-lg w-24 bg-gray-600 text-white ${disabledClass}" min="1" value="1" ${disabledAttribute}>
+                        </td>
+                        <td>
+                            <button data-company="${company.name}" data-action="buy" class="buy-button bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm ${disabledClass}" ${disabledAttribute}>Buy</button>
+                            <button data-company="${company.name}" data-action="sell" class="sell-button bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full text-sm ${disabledClass}" ${disabledAttribute}>Sell</button>
+                        </td>
+                    `;
+                    marketTableBody.appendChild(row);
+                });
+            }
+
+            // Updates the detailed portfolio table
+            function updateDetailedPortfolio() {
+                detailedPortfolioBody.innerHTML = '';
+                gameData.companies.forEach(company => {
+                    const sharesOwned = gameData.ownedStocks[company.name];
+                    if (sharesOwned > 0) {
+                        const costBasis = gameData.stockCostBasis[company.name];
+                        const currentValue = sharesOwned * company.currentPrice;
+                        const profitLoss = currentValue - costBasis;
+                        const profitLossClass = profitLoss >= 0 ? 'positive' : 'negative';
+                        
+                        // Calculate average cost per unit
+                        const averageCost = costBasis / sharesOwned;
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${company.name}</td>
+                            <td>${sharesOwned}</td>
+                            <td>₹${currentValue.toFixed(2)}</td>
+                            <td>₹${averageCost.toFixed(2)}</td>
+                            <td class="${profitLossClass}">₹${profitLoss.toFixed(2)}</td>
+                        `;
+                        detailedPortfolioBody.appendChild(row);
+                    }
+                });
+            }
+
+            // Updates the player's portfolio value and display
+            function updatePortfolio() {
+                let totalStockValue = 0;
+                gameData.companies.forEach(company => {
+                    totalStockValue += (gameData.ownedStocks[company.name] || 0) * company.currentPrice;
+                });
+                
+                const totalPortfolioValue = gameData.cash + totalStockValue;
+                const initialValue = INITIAL_CASH;
+                const totalGainLoss = totalPortfolioValue - initialValue;
+                const totalGainLossPercent = (totalGainLoss / initialValue) * 100;
+                
+                // Format portfolio value with color coding
+                portfolioValueDisplay.innerHTML = `₹${totalPortfolioValue.toFixed(2)} <span class="text-sm ${totalGainLoss >= 0 ? 'text-green-400' : 'text-red-400'}">(${totalGainLoss >= 0 ? '+' : ''}${totalGainLossPercent.toFixed(2)}%)</span>`;
+                cashValueDisplay.textContent = `₹${gameData.cash.toFixed(2)}`;
+            }
+
+            // Function to handle the actual trade execution
+            function executeTrade(companyName, action, quantity) {
+                const company = gameData.companies.find(c => c.name === companyName);
+                
+                // Validate inputs
+                if (!company) {
+                    showMessage("Error: Company not found.");
+                    return;
+                }
+                
+                if (!quantity || quantity <= 0 || !Number.isInteger(quantity)) {
+                    showMessage("Error: Invalid quantity. Please enter a positive whole number.");
+                    return;
+                }
+
+                if (company.currentPrice <= 0) {
+                    showMessage("Error: Invalid stock price. Cannot trade at zero or negative price.");
+                    return;
+                }
+
+                let transactionTotal;
+                let transactionFee;
+
+                if (action === 'buy') {
+                    transactionTotal = quantity * company.currentPrice;
+                    transactionFee = transactionTotal * TRANSACTION_FEE_PERCENT;
+                    const finalCost = transactionTotal + transactionFee;
+                    
+                    // Check for extreme values
+                    if (finalCost > Number.MAX_SAFE_INTEGER) {
+                        showMessage("Error: Transaction amount too large to process.");
+                        return;
+                    }
+                    
+                    if (finalCost > gameData.cash) {
+                        showMessage("Not enough cash to complete this purchase with the transaction fee.");
+                        return;
+                    }
+
+                    // Update cost basis using a weighted average
+                    const existingShares = gameData.ownedStocks[companyName] || 0;
+                    const existingCost = gameData.stockCostBasis[companyName] || 0;
+                    const newTotalCost = existingCost + transactionTotal;
+                    const newTotalShares = existingShares + quantity;
+
+                    // Check for overflow
+                    if (newTotalShares > Number.MAX_SAFE_INTEGER) {
+                        showMessage("Error: Cannot hold this many shares.");
+                        return;
+                    }
+
+                    gameData.cash = Math.max(0, gameData.cash - finalCost);
+                    gameData.ownedStocks[companyName] = newTotalShares;
+                    gameData.stockCostBasis[companyName] = newTotalCost;
+
+                } else if (action === 'sell') {
+                    const currentShares = gameData.ownedStocks[companyName] || 0;
+                    
+                    if (currentShares < quantity) {
+                        showMessage("You don't own enough shares to make this sale.");
+                        return;
+                    }
+                    
+                    if (currentShares === 0) {
+                        showMessage("You don't own any shares of this company.");
+                        return;
+                    }
+                    
+                    // Handle division by zero case
+                    const existingShares = gameData.ownedStocks[companyName];
+                    const existingCost = gameData.stockCostBasis[companyName] || 0;
+                    const avgCostPerShare = existingShares > 0 ? existingCost / existingShares : 0;
+                    const costReduction = avgCostPerShare * quantity;
+
+                    transactionTotal = quantity * company.currentPrice;
+                    transactionFee = transactionTotal * TRANSACTION_FEE_PERCENT;
+                    const finalRevenue = Math.max(0, transactionTotal - transactionFee);
+                    
+                    gameData.cash += finalRevenue;
+                    gameData.ownedStocks[companyName] = Math.max(0, existingShares - quantity);
+                    gameData.stockCostBasis[companyName] = Math.max(0, existingCost - costReduction);
+                    
+                    // Clean up if no shares left
+                    if (gameData.ownedStocks[companyName] === 0) {
+                        gameData.stockCostBasis[companyName] = 0;
+                    }
+                }
+
+                // Record the transaction
+                gameData.transactionHistory.push({
+                    day: currentDay === 0 ? "Setup" : (DAY_NAMES[currentDay-1] || `Day ${currentDay}`),
+                    type: action.toUpperCase(),
+                    company: companyName,
+                    quantity: quantity,
+                    price: company.currentPrice.toFixed(2),
+                    total: transactionTotal.toFixed(2),
+                    fee: transactionFee.toFixed(2),
+                    timestamp: new Date().toLocaleString()
+                });
+
+                updateMarketTable();
+                updatePortfolio();
+                updateDetailedPortfolio();
+                showMessage(`${action === 'buy' ? 'Successfully bought' : 'Successfully sold'} ${quantity} shares of ${companyName}.`);
+            }
+
+            // Handles buy and sell actions using event delegation
+            marketTableBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (target.tagName === 'BUTTON' && (target.classList.contains('buy-button') || target.classList.contains('sell-button'))) {
+                    
+                    // Check if trading is allowed based on game phase
+                    if (gamePhase === 'break') {
+                        showMessage("Trading is not allowed during break time. Please wait for the next trading session.");
+                        return;
+                    }
+                    
+                    const companyName = target.dataset.company;
+                    const action = target.dataset.action;
+                    const quantityInput = document.querySelector(`input.trade-quantity-input[data-company="${companyName}"]`);
+                    
+                    if (!quantityInput) {
+                        showMessage("Error: Could not find quantity input field.");
+                        return;
+                    }
+                    
+                    const quantity = parseInt(quantityInput.value);
+                    
+                    if (gamePhase === 'setup' && action === 'sell') {
+                        showMessage("You can only buy stocks during the portfolio construction phase.");
+                        return;
+                    }
+
+                    const company = gameData.companies.find(c => c.name === companyName);
+                    if (!company) {
+                        showMessage("Error: Company not found.");
+                        return;
+                    }
+                    
+                    // Enhanced input validation
+                    if (isNaN(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
+                        showMessage("Invalid trade quantity. Please enter a positive whole number.");
+                        return;
+                    }
+                    
+                    if (quantity > 1000000) { // Reasonable upper limit
+                        showMessage("Trade quantity too large. Maximum allowed: 1,000,000 shares.");
+                        return;
+                    }
+                    
+                    const transactionTotal = quantity * company.currentPrice;
+                    const transactionFee = transactionTotal * TRANSACTION_FEE_PERCENT;
+                    
+                    // Check for extreme values
+                    if (!isFinite(transactionTotal) || transactionTotal > Number.MAX_SAFE_INTEGER) {
+                        showMessage("Transaction amount is too large to process.");
+                        return;
+                    }
+
+                    // Check if the user has enough cash for a purchase
+                    if (action === 'buy' && (transactionTotal + transactionFee) > gameData.cash) {
+                        showMessage("Not enough cash to complete this purchase with the transaction fee.");
+                        return;
+                    }
+                    
+                    // Check if the user has enough shares for a sale
+                    if (action === 'sell' && (gameData.ownedStocks[companyName] || 0) < quantity) {
+                        showMessage("You don't own enough shares to make this sale.");
+                        return;
+                    }
+
+                    // Show confirmation modal
+                    const confirmationMessage = `
+                        Are you sure you want to ${action === 'buy' ? 'buy' : 'sell'}?<br><br>
+                        <strong>Company:</strong> ${companyName}<br>
+                        <strong>Action:</strong> ${action.toUpperCase()}<br>
+                        <strong>Shares:</strong> ${quantity.toLocaleString()}<br>
+                        <strong>Current Price:</strong> ₹${company.currentPrice.toFixed(2)}<br>
+                        <strong>Total Value:</strong> ₹${transactionTotal.toFixed(2)}<br>
+                        <strong>Commission (${(TRANSACTION_FEE_PERCENT*100).toFixed(2)}%):</strong> ₹${transactionFee.toFixed(2)}
+                    `;
+
+                    showMessage(confirmationMessage, true, () => {
+                        executeTrade(companyName, action, quantity);
+                    });
+                }
+            });
+
+            // Ends the game and shows the results screen
+            function endGame() {
+                let totalStockValue = 0;
+                gameData.companies.forEach(company => {
+                    totalStockValue += (gameData.ownedStocks[company.name] || 0) * company.currentPrice;
+                });
+                const finalValue = gameData.cash + totalStockValue;
+                
+                const playerName = playerInput.value || 'Player';
+                const date = new Date();
+
+                finalValueDisplay.textContent = `₹${finalValue.toFixed(2)}`;
+                playerInfoDisplay.textContent = `Player: ${playerName}`;
+                dateInfoDisplay.textContent = `Game End: ${date.toLocaleString()}`;
+
+                // Render transaction history
+                transactionHistoryBody.innerHTML = '';
+                gameData.transactionHistory.forEach(t => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="text-center">${t.timestamp}</td>
+                        <td class="text-center">${t.type}</td>
+                        <td class="text-center">${t.company}</td>
+                        <td class="text-center">${t.quantity}</td>
+                        <td class="text-center">₹${t.price}</td>
+                        <td class="text-center">₹${t.total}</td>
+                        <td class="text-center">₹${t.fee}</td>
+                    `;
+                    transactionHistoryBody.appendChild(row);
+                });
+
+                gameScreen.classList.add('hidden');
+                resultsScreen.classList.remove('hidden');
+            }
+
+            // Handles the 'Start Game' button click
+            document.getElementById('start-game-button').addEventListener('click', () => {
+                // Only parse table data if tables are visible (customized)
+                const isCustomized = !companyTableContainer.classList.contains('hidden');
+                
+                if (isCustomized) {
+                    if (!parseTableData()) {
+                        return; // Don't start game if parsing failed
+                    }
+                } else {
+                    // Use existing default data if not customized
+                    if (gameData.companies.length === 0 || gameData.news.length === 0) {
+                        initializeGameData();
+                    }
+                }
+                
+                setupScreen.classList.add('hidden');
+                gameScreen.classList.remove('hidden');
+                
+                updateMarketTable();
+                updatePortfolio();
+                updateDetailedPortfolio();
+                updateScrollingNews(); // Initialize the scrolling news ticker
+                startGameTimer();
+            });
+
+            // Handles the 'Reset Data' button click
+            document.getElementById('reset-button').addEventListener('click', () => {
+                initializeGameData();
+                renderSetupTables();
+                showMessage("Game data has been reset to default values.");
+            });
+
+            // New logic to handle the 'Customize Data' button
+            customizeDataButton.addEventListener('click', () => {
+                const isHidden = companyTableContainer.classList.contains('hidden');
+                if (isHidden) {
+                    companyTableContainer.classList.remove('hidden');
+                    newsTableContainer.classList.remove('hidden');
+                    customizeDataButton.textContent = 'Hide Data';
+                } else {
+                    companyTableContainer.classList.add('hidden');
+                    newsTableContainer.classList.add('hidden');
+                    customizeDataButton.textContent = 'Customize Data';
+                }
+            });
+
+            // Initialize on page load
+            initializeGameData();
+            renderSetupTables();
+        });
+    </script>
+</body>
+</html>
